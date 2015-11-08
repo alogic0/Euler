@@ -19,7 +19,16 @@ euler2 = sum $ fst $ break (> 4000000) $ filter even fib
 primes = sieve [2 ..]
     where sieve (n:ns) = n : sieve (filter (\k -> k `mod` n /= 0) ns)
     
-{-
+
+-- generate primes less than 10 ^ 6 into the file
+generate_primes10x6 =
+  do h10 <- openFile "primes10x6.txt" WriteMode 
+  mapM_ (\n -> do hPutStrLn h10 (show n)
+                  print n) 
+        (takeWhile (<1000000) primes)
+  hClose h10
+
+{- -- read prime numbers into list named ""primesB"
 tmp <- readFile "primes10x6.txt"
 let {primesB :: [Int]; primesB = map read (lines tmp)}
 -}
