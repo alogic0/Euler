@@ -6,6 +6,7 @@ import Data.Char
 import Data.Maybe
 import Control.Monad.State
 import qualified Data.Set as S
+import System.IO
 import Palindromic
 
 -- 1
@@ -23,10 +24,10 @@ primes = sieve [2 ..]
 -- generate primes less than 10 ^ 6 into the file
 generate_primes10x6 =
   do h10 <- openFile "primes10x6.txt" WriteMode 
-  mapM_ (\n -> do hPutStrLn h10 (show n)
-                  print n) 
-        (takeWhile (<1000000) primes)
-  hClose h10
+     mapM_ (\n -> do hPutStrLn h10 (show n)
+                     print n) 
+           (takeWhile (<1000000) primes)
+     hClose h10
 
 {- -- read prime numbers into list named ""primesB"
 tmp <- readFile "primes10x6.txt"
@@ -418,6 +419,158 @@ findSM n (m:ms)
   | m > n = Nothing
   | otherwise = findSM n ms
   
+euler38' n = 
+  filter (\(xs,_,_) -> sort xs == "123456789")
+  $ takeWhile (\(x,_,_) -> length x <= 9) 
+  $ zipWith (\m ns -> (concatMap (show . (* m)) ns, m, ns)) (repeat n) (map ([1,2]++) (inits [3 ..]))
+
+euler38 =
+  mapM_ (putStrLn . show) $ 
+  scanl' (\(m, _) n ->
+            let ns = euler38' n
+            in (maximum (m : ns), n))
+         (("192384576",192,[1,2,3]), 0)
+         (filter (\n -> let ns = show n 
+                        in notElem '0' ns && nub ns == ns)
+          $ takeWhile (<9999) [2 .. ])
+-- ("932718654",9327,[1,2])
+
+pythagor n = [(a, b, c) | a <- [1 .. n], b <- [a .. n], let c = n - a - b, a ^ 2 + b ^ 2 == c ^ 2]
+
+euler39 =
+  mapM_ (putStrLn . show)
+  $ scanl' (\(m, _) n@(_, (_, nN)) -> (max m n, nN)) ((0, ([],0)), 0) 
+  $ map (\p@(ns, _) -> (length ns, p)) 
+--  $ filter (\(ns, _) -> (not. null) ns)
+  $ map (\n -> (pythagor n, n)) [1 .. 1000]
+  
+euler40' = concatMap show [0 ..]
+euler40 = product $ map (digitToInt . (euler40' !!) . (10 ^)) [0 .. 6]
+--210
+
+euler41' :: [Int]
+euler41' = [read $ concatMap show [a0,a1,a2,a3,a4,a5,a6] | let digs = reverse [1 .. 7]
+                                                , a0 <- digs
+                                                , a1 <- digs \\ [a0]
+                                                , a2 <- digs \\ [a0, a1]
+                                                , a3 <- digs \\ [a0, a1, a2]
+                                                , a4 <- digs \\ [a0, a1, a2, a3]
+                                                , a5 <- digs \\ [a0, a1, a2, a3, a4]
+                                                , a6 <- [7,5 .. 1] \\ [a0, a1, a2, a3, a4, a5]]
+
+euler41prim = takeWhile (<= (ceiling . sqrt) (fromIntegral $ head euler41')) primes
+euler41IsPrime n = all (\k -> n `mod` k /= 0) euler41prim
+
+euler41 = let (_, as) = break euler41IsPrime euler41' in head as
+--7652413
+
+euler42 =
+  do l <- readFile "p042_words.txt"
+     let l1 = words $ map (\c -> if c == ',' then ' ' else c ) $ filter ((flip notElem) "\"") l
+     let l2 = map (\s -> (s, sum $ map (\c -> ord c - ord 'A' + 1) s)) l1
+     let triangNums = map (\n -> (n * (n + 1)) `div` 2) [1 ..]
+     let l3 = mapMaybe (\(s, n) ->
+                         do n1 <- findSM n triangNums
+                            return (s, n1))
+                    l2
+     return (length l3)
+-- 162
+
+euler43' = 
+  [[a0,a1,a2,a3,a4,a5,a6,a7,a8,a9] 
+    | let digs = ['0' .. '9']
+    , a9 <- digs
+    , a8 <- digs \\ [a9]
+    , a7 <- digs \\ [a9, a8]
+    , read [a7,a8,a9] `mod` 17 == 0
+    , a6 <- digs \\ [a9, a8, a7]
+    , read [a6,a7,a8] `mod` 13 == 0
+    , a5 <- digs \\ [a9, a8, a7, a6]
+    , read [a5,a6,a7] `mod` 11 == 0
+    , a4 <- digs \\ [a9, a8, a7, a6, a5]
+    , read [a4,a5,a6] `mod` 7 == 0
+    , a3 <- digs \\ [a9, a8, a7, a6, a5, a4]
+    , read [a3,a4,a5] `mod` 5 == 0
+    , a2 <- digs \\ [a9, a8, a7, a6, a5, a4, a3]
+    , read [a2,a3,a4] `mod` 3 == 0
+    , a1 <- digs \\ [a9, a8, a7, a6, a5, a4, a3, a2]
+    , read [a1,a2,a3] `mod` 2 == 0
+    , a0 <- digs \\ [a9, a8, a7, a6, a5, a4, a3, a2, a1]]
+
+euler43 =
+  do
+    mapM_ print $ scanl' (\(n, _) s -> (n + 1, s)) (0,"") euler43'
+    print $ sum $ map read euler43'
+  where 
+   seqS3 xs = filter (\s -> length s == 3) $ map (take 3) $ tail $ tails xs
+   primeS7 = take 7 primes
+   probe xs = and $ zipWith (\s n -> read s `mod` n == 0) (seqS3 xs) primeS7
+-- 16695334890
+
+-- 3*n^2 - n + 3*(n - 1)^2 - (n - 1) = 6*n^2 - 8*n + 4 = 3*k^2 - k
+-- 3*n^2 - n - 3*m^2 + m = 3*l^2 - l
+
+
+pentagonalS :: Integer -> [Integer]
+pentagonalS n = map (\n -> (n * (3 * n - 1)) `div` 2) [n ..]
+
+pentagonals = pentagonalS 1
+
+squaresP :: [(Integer, Integer)]
+squaresP = map (\n -> (n^2, n)) [1 ..]
+
+findSMP n [] = Nothing
+findSMP n (m:ms)
+  | n == fst m = Just m
+  | fst m > n = Nothing
+  | otherwise = findSMP n ms
+
+--pentP (x, y) = all isJust [findSM (abs (x - y)) pentagonals, findSM (x + y) pentagonals]
+pentP (x, y) = isJust $
+  do 
+    let d = abs (x - y)
+    _ <- findSM d pentagonals
+    let s = x + y
+    (_, n) <- findSMP (24*s + 1) squaresP
+    guard $ (n + 1) `mod` 6 == 0
+    return (d, s)
+
+isPent n = isJust $
+  do
+    (_, m) <- findSMP (24*n + 1) squaresP
+    guard $ (m + 1) `mod` 6 == 0
+    
+pentSeedM n y x | x > y = pentSeedM n x y
+pentSeedM n y x =
+  do 
+    let s = x + y
+    let ps = pentagonalS n
+    _ <- findSM s ps
+--    guard $ isPent s
+    let (s1, s2) = (s + x, s + y)
+    s3 <- msum [findSM s1 ps, findSM s2 ps]
+--    guard $ isPent s1
+    if s3 == s1
+      then return [y, x, s, s3]
+      else return [x, y, s, s3]
+  
+--pentP2 (x, y) = isJust $ findSM (x + y) $ map (*2) pentagonals
+
+euler44' n p = msum $ map (pentSeedM n p) (take (fromInteger (n - 1)) pentagonals)
+
+euler44 =
+  do 
+      let (lst1, lst2) = span (\(res, _) -> res == Nothing) $ 
+                   scanl' (\(res, _) pp@(n, p) -> 
+                     if isJust res 
+                       then (res, pp)
+                       else (euler44' n p, pp)) 
+                   (Nothing, (0,0)) $ 
+                   zip [1 ..] pentagonals
+      mapM_ print lst1
+      print $ fromJust $ fst $ head lst2
+-- [5482660,1560090,7042750,8602840] 5482660
+    
 getArSeqs3 (x : xs) = 
   catMaybes 
             [ do let d = x2 - x
