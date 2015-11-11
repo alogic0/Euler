@@ -464,13 +464,15 @@ euler41IsPrime n = all (\k -> n `mod` k /= 0) euler41prim
 euler41 = let (_, as) = break euler41IsPrime euler41' in head as
 --7652413
 
+triangNums :: [Integer]
+triangNums = map (\n -> (n * (n + 1)) `div` 2) [1 ..]
+
 euler42 =
   do l <- readFile "p042_words.txt"
      let l1 = words $ map (\c -> if c == ',' then ' ' else c ) $ filter ((flip notElem) "\"") l
      let l2 = map (\s -> (s, sum $ map (\c -> ord c - ord 'A' + 1) s)) l1
-     let triangNums = map (\n -> (n * (n + 1)) `div` 2) [1 ..]
      let l3 = mapMaybe (\(s, n) ->
-                         do n1 <- findSM n triangNums
+                         do n1 <- findSM (toInteger n) triangNums
                             return (s, n1))
                     l2
      return (length l3)
@@ -570,6 +572,26 @@ euler44 =
       mapM_ print lst1
       print $ fromJust $ fst $ head lst2
 -- [5482660,1560090,7042750,8602840] 5482660
+
+hexagonals :: [Integer]
+hexagonals = map (\n -> n * (2 * n - 1)) [1 ..]
+
+euler45' ::  [Integer] -> [Integer] -> [Integer] -> IO Integer
+euler45' (tr:trs) pts@(pt:_) hxs@(hx:_) =
+  do  
+      print (tr, pt, hx)
+      if tr == pt && pt == hx
+        then return tr
+        else 
+          let h = head trs
+          in euler45' trs (dropWhile (< h) pts) (dropWhile (< h) hxs)
+    
+--euler45 = euler45' triangNums pentagonals hexagonals
+euler45 n = 
+ let
+   lst = dropWhile (<= n) triangNums 
+   h = head lst
+ in euler45' lst (dropWhile (< h) pentagonals) (dropWhile (< h) hexagonals)
     
 getArSeqs3 (x : xs) = 
   catMaybes 
